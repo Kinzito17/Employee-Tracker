@@ -1,20 +1,10 @@
 //Dependencies
 const mysql = require("mysql");
-const inquirer = require("inquirer")
+const inquirer = require("inquirer");
+const consoleTable = require("console.table");
+const connection = require('./connection');
 
-//mysql connection
-const connection = mysql.createConnection({
-    host: "localhost",
-    port: 3306,
-    user: "root",
-    password: "dbpassword",
-    database: "employeeDB"
-});
-
-connection.connect(err => {
-    if (err) throw err;
-    start();
-})
+start();
 
 function start() {
     inquirer.prompt({
@@ -28,6 +18,7 @@ function start() {
             "View all employess by manager.",
             "Add employee.",
             "Add a new role.",
+            "Add a new department.",
             "Remove employee.",
             "Update employee role.",
             "Update employee manager.",
@@ -53,6 +44,9 @@ function start() {
             case "Add a new role.":
                 addRole();
                 break;
+            case "Add a new department.":
+                addDept();
+                break;
             case "Remove employee.":
                 empDel();
                 break;
@@ -70,7 +64,7 @@ function start() {
 }
 
 function empAll() {
-    connection.query("SELECT * FROM employee", function (err, res) {
+    connection.query("SELECT employee.id 'EMPLOYEE ID', employee.first_name 'FIRST NAME', employee.last_name 'LAST NAME', department.name 'DEPARTMENT', role.title 'TITLE', role.salary 'SALARY' FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department on role.department_id = department.id;", function (err, res) {
         if (err) throw err;
         "\m"
         console.table(res);
@@ -80,7 +74,7 @@ function empAll() {
 }
 
 function empDept() {
-    connection.query("SELECT * FROM department", function (err, res) {
+    connection.query("SELECT id 'DEPT ID', name 'DEPT NAME' FROM department", function (err, res) {
         if (err) throw err;
         "\m"
         console.table(res);
@@ -90,7 +84,7 @@ function empDept() {
 }
 
 function empRole() {
-    connection.query("SELECT * FROM role", function (err, res) {
+    connection.query("SELECT title 'TITLE', salary 'SALARY' FROM role", function (err, res) {
         if (err) throw err;
         "\m"
         console.table(res);
@@ -112,8 +106,7 @@ function empAdd() {
             name: "lastName"
         }
     ]).then(answer => {
-        let query = connection.query(
-            "INSERT INTO employee SET ?",
+        let query = connection.query("INSERT INTO employee SET ?",
             {
                 first_name: answer.firstName,
                 last_name: answer.lastName,
@@ -169,47 +162,103 @@ function addRole() {
     })
 };
 
+function addDept() {
+    inquirer.prompt([
+        {
+            type: "input",
+            message: "What is the name of the department you'd like to add?",
+            name: "name"
+        }
+    ]).then(answer => {
+        let query = connection.query(
+            "INSERT INTO department SET ?",
+            {
+                name: answer.name
+            },
+            (err, res) => {
+                if (err) throw err;
 
-function empUpRole() {
-    let emps = []
+                "\n"
+                console.log("The department" + answer.name + "has been added!")
+                "\n"
+            }
+        );
+        start();
+    })
+};
+
+function empDel() {
     connection.query("SELECT * FROM employee", (err, res) => {
         if (err) throw err;
 
-        for (let i = 0; i < res.length; i++) {
-            let emp = res[i].id + " " + res[i].first_name + " " + res[i].last_name;
-            emps.push(emp);
-            console.log(emps);
-        }
+        inquirer.prompt([
+            {
+                type: "list",
+                message: "Which employee's would you like to remove?",
+                name: "empDel",
+                choices: res.map(res => res.id + " " + res.first_name + " " + res.last_name)
+            }
+        ]).then(answer => {
+            const delID = {}
+            delID.id = parseInt(answer.empDel.split(" ")[0]);
+
+            connection.query("DELETE FROM employee WHERE ?",
+                {
+                    id: delID.id
+                },
+                (err, res) => {
+                    if (err) throw err;
+                }
+            );
+            start();
+        })
+    })
+}
+
+function empUpRole() {
+    connection.query("SELECT employee.id, employee.first_name, employee.last_name, role.title FROM employee JOIN role ON employee.role_id = role.id", (err, res) => {
+        if (err) throw err;
+        console.log(res);
+        // SELECT employee.id, employee.first_name, employee.last_name, role.title FROM employee JOIN role ON employee.role_id = role.id;
         inquirer.prompt([
             {
                 type: "list",
                 message: "Which employee's role would you like to update?",
                 name: "whichemp",
-                choices: emps
+                choices: res.map(res => res.id + " " + res.first_name + " " + res.last_name)
+
+                // function() {
+                //     let emps = [];
+                //     for (let i = 0; i < res.length; i++) {
+                //         emps.push(res[i].id + " " + res[i].first_name + " " + res[i].last_name);
+                //     }
+                //     return emps;
+                // }
             },
             {
                 type: "list",
                 message: "What is the employee's new role?",
                 name: "newrole",
-                choices: [
-                    "Senior Engineer",
-                    "Associate Engineer",
-                    "Sales Manager",
-                    "Sales Associate",
-                    "Account Manager",
-                    "Account Representative",
-                    "Lead Counsel",
-                    "General Counsel",
-                    "Controller",
-                    "Accountant"
-                ]
+                choices: res.map(res => res.title)
+                    // [
+                    //     "Senior Engineer",
+                    //     "Associate Engineer",
+                    //     "Sales Manager",
+                    //     "Sales Associate",
+                    //     "Account Manager",
+                    //     "Account Representative",
+                    //     "Lead Counsel",
+                    //     "General Counsel",
+                    //     "Controller",
+                    //     "Accountant"
+                    // ]
             }
         ]).then(answer => {
             const updateID = {}
             updateID.id = parseInt(answer.whichemp.split(" ")[0]);
             switch (answer.newrole) {
                 case "Senior Engineer":
-                    updateID = role_id = 1;
+                    updateID.role_id = 1;
                     break;
                 case "Associate Engineer":
                     updateID.role_id = 2;
@@ -252,7 +301,7 @@ function empUpRole() {
 
 };
 
+
 function empUpMan() {
 
 }
-
