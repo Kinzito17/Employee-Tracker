@@ -1,8 +1,10 @@
 //Dependencies
 const mysql = require("mysql");
 const inquirer = require("inquirer");
-const consoleTable = require("console.table");
 const connection = require('./connection');
+const boxen = require('boxen');
+
+console.log(boxen('Welcome to your Employee Portal!', { padding: 1 }));
 
 start();
 
@@ -68,14 +70,13 @@ function start() {
 }
 
 function empAll() {
-    connection.query(
+    let query = connection.query(
         `SELECT employee.id 'EMPLOYEE ID', employee.first_name 'FIRST NAME', employee.last_name 'LAST NAME', department.name 'DEPARTMENT', role.title 'TITLE', role.salary 'SALARY' 
         FROM employee 
         LEFT JOIN role ON employee.role_id = role.id 
         LEFT JOIN department on role.department_id = department.id;`,
         function (err, res) {
             if (err) throw err;
-            "\m"
             console.table(res);
             "\n";
             start();
@@ -83,9 +84,8 @@ function empAll() {
 }
 
 function empDept() {
-    connection.query("SELECT id 'DEPT ID', name 'DEPT NAME' FROM department", function (err, res) {
+    let query = connection.query("SELECT id 'DEPT ID', name 'DEPT NAME' FROM department", function (err, res) {
         if (err) throw err;
-        "\m"
         console.table(res);
         "\n";
         start();
@@ -93,9 +93,8 @@ function empDept() {
 }
 
 function empRole() {
-    connection.query("SELECT title 'TITLE', salary 'SALARY' FROM role", function (err, res) {
+    let query = connection.query("SELECT title 'TITLE', salary 'SALARY' FROM role", function (err, res) {
         if (err) throw err;
-        "\m"
         console.table(res);
         "\n";
         start();
@@ -127,7 +126,8 @@ function viewDept() {
                     (err, res) => {
                         if (err) throw err;
                         console.table(res);
-
+                        "\n";
+                        start();
                     })
             })
         })
@@ -157,48 +157,55 @@ function empAdd() {
                 if (err) throw err;
             }
         );
-        "\n"
         console.log(answer.firstName + " has been added!")
         "\n"
+
         start();
     })
 };
 
 function addRole() {
-    inquirer.prompt([
-        {
-            type: "input",
-            message: "What is the title of the new role?",
-            name: "title"
-        },
-        {
-            type: "input",
-            message: "What is the salary for the role? (123456.00)?",
-            name: "salary"
-        },
-        {
-            type: "input",
-            message: "What is the department ID for this role?",
-            name: "deptID"
-        }
-    ]).then(answer => {
-        let query = connection.query(
-            "INSERT INTO role SET ?",
-            {
-                title: answer.title,
-                salary: answer.salary,
-                department_id: answer.deptID
-            },
-            function (err, res) {
-                if (err) throw err;
+    connection.query("SELECT * FROM department",
+        function (err, res) {
+            if (err) throw err;
 
-                "\n"
+            inquirer.prompt([
+                {
+                    type: "input",
+                    message: "What is the title of the new role?",
+                    name: "title"
+                },
+                {
+                    type: "input",
+                    message: "What is the salary for the role? (123456.00)?",
+                    name: "salary"
+                },
+                {
+                    type: "list",
+                    message: "What is the department ID for this role?",
+                    name: "deptID",
+                    choices: res.map(res => res.id + " " + res.name)
+                }
+            ]).then(answer => {
+                deptId = answer.deptID.split(' ')[0];
+
+                let query = connection.query(
+                    "INSERT INTO role SET ?",
+                    {
+                        title: answer.title,
+                        salary: answer.salary,
+                        department_id: deptId
+                    },
+                    function (err, res) {
+                        if (err) throw err;
+                    }
+                );
                 console.log("The role " + answer.title + " has been added!")
                 "\n"
-            }
-        );
-        start();
-    })
+
+                start();
+            })
+        })
 };
 
 function addDept() {
@@ -216,12 +223,11 @@ function addDept() {
             },
             (err, res) => {
                 if (err) throw err;
-
-                "\n"
-                console.log("The department " + answer.name + " has been added!")
-                "\n"
             }
         );
+        console.log("The department " + answer.name + " has been added!")
+        "\n"
+
         start();
     })
 };
@@ -239,6 +245,7 @@ function empDel() {
             }
         ]).then(answer => {
             empRem = answer.empDel.split(" ")[0];
+            empName = answer.empDel.split(" ")[1];
 
             connection.query("DELETE FROM employee WHERE employee.id = ?",
                 [empRem],
@@ -246,6 +253,9 @@ function empDel() {
                     if (err) throw err;
                 }
             );
+            console.log(empName + " has been removed!")
+            "\n"
+
             start();
         })
     })
@@ -264,6 +274,7 @@ function roleDel() {
             }
         ]).then(answer => {
             roleRem = answer.roleDel.split(" ")[0];
+            roleName = answer.roleDel.split(" ")[1];
 
             connection.query("DELETE FROM role WHERE role.id = ?",
                 [roleRem],
@@ -271,6 +282,9 @@ function roleDel() {
                     if (err) throw err;
                 }
             );
+            console.log("The role has been removed!")
+            "\n"
+
             start();
         })
     })
@@ -288,7 +302,6 @@ function deptDel() {
                 choices: res.map(res => res.name)
             }
         ]).then(answer => {
-            console.log(answer)
             deptRem = answer.deptDel;
 
             connection.query("DELETE FROM department WHERE name = ?",
@@ -297,6 +310,9 @@ function deptDel() {
                     if (err) throw err;
                 }
             );
+            console.log("The dpartment " + deptRem + " has been removed!")
+            "\n"
+
             start();
         })
     })
