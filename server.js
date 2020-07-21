@@ -20,6 +20,8 @@ function start() {
             "Add a new role.",
             "Add a new department.",
             "Remove employee.",
+            "Remove role.",
+            "Remove department.",
             "Update employee role.",
             "Exit"
         ]
@@ -48,6 +50,12 @@ function start() {
                 break;
             case "Remove employee.":
                 empDel();
+                break;
+            case "Remove role.":
+                roleDel();
+                break;
+            case "Remove department.":
+                deptDel();
                 break;
             case "Update employee role.":
                 empUpRole();
@@ -125,12 +133,6 @@ function viewDept() {
         })
 }
 
-// `SELECT employee.first_name AS 'First Name', employee.last_name AS 'Last Name', role.title AS 'Title', department.name AS 'Department' 
-// FROM employee 
-// LEFT JOIN role ON employee.role_id = role.id
-// LEFT JOIN department ON role.department_id = department.id
-// WHERE department.name = ?`
-
 function empAdd() {
     inquirer.prompt([
         {
@@ -153,12 +155,11 @@ function empAdd() {
             },
             function (err, res) {
                 if (err) throw err;
-
-                "\n"
-                console.log(answer.firstName + " has been added!")
-                "\n"
             }
         );
+        "\n"
+        console.log(answer.firstName + " has been added!")
+        "\n"
         start();
     })
 };
@@ -237,13 +238,10 @@ function empDel() {
                 choices: res.map(res => res.id + " " + res.first_name + " " + res.last_name)
             }
         ]).then(answer => {
-            const delID = {}
-            delID.id = parseInt(answer.empDel.split(" ")[0]);
+            empRem = answer.empDel.split(" ")[0];
 
-            connection.query("DELETE FROM employee WHERE ?",
-                {
-                    id: delID.id
-                },
+            connection.query("DELETE FROM employee WHERE employee.id = ?",
+                [empRem],
                 (err, res) => {
                     if (err) throw err;
                 }
@@ -252,6 +250,58 @@ function empDel() {
         })
     })
 }
+
+function roleDel() {
+    connection.query("SELECT * FROM role", (err, res) => {
+        if (err) throw err;
+
+        inquirer.prompt([
+            {
+                type: "list",
+                message: "Which role would you like to remove?",
+                name: "roleDel",
+                choices: res.map(res => res.id + " " + res.title)
+            }
+        ]).then(answer => {
+            roleRem = answer.roleDel.split(" ")[0];
+
+            connection.query("DELETE FROM role WHERE role.id = ?",
+                [roleRem],
+                (err, res) => {
+                    if (err) throw err;
+                }
+            );
+            start();
+        })
+    })
+}
+
+function deptDel() {
+    connection.query("SELECT * FROM department", (err, res) => {
+        if (err) throw err;
+
+        inquirer.prompt([
+            {
+                type: "list",
+                message: "Which department would you like to remove?",
+                name: "deptDel",
+                choices: res.map(res => res.name)
+            }
+        ]).then(answer => {
+            console.log(answer)
+            deptRem = answer.deptDel;
+
+            connection.query("DELETE FROM department WHERE name = ?",
+                [deptRem],
+                (err, res) => {
+                    if (err) throw err;
+                }
+            );
+            start();
+        })
+    })
+}
+
 
 function empUpRole() {
     let query = connection.query("SELECT * FROM employee", (err, res) => {
