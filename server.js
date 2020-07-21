@@ -15,6 +15,7 @@ function start() {
             "View all employees.",
             "View all departments.",
             "View all roles.",
+            "View all employees by department.",
             "Add employee.",
             "Add a new role.",
             "Add a new department.",
@@ -32,6 +33,9 @@ function start() {
                 break;
             case "View all roles.":
                 empRole();
+                break;
+            case "View all employees by department.":
+                viewDept();
                 break;
             case "Add employee.":
                 empAdd();
@@ -56,13 +60,18 @@ function start() {
 }
 
 function empAll() {
-    connection.query("SELECT employee.id 'EMPLOYEE ID', employee.first_name 'FIRST NAME', employee.last_name 'LAST NAME', department.name 'DEPARTMENT', role.title 'TITLE', role.salary 'SALARY' FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department on role.department_id = department.id;", function (err, res) {
-        if (err) throw err;
-        "\m"
-        console.table(res);
-        "\n";
-        start();
-    })
+    connection.query(
+        `SELECT employee.id 'EMPLOYEE ID', employee.first_name 'FIRST NAME', employee.last_name 'LAST NAME', department.name 'DEPARTMENT', role.title 'TITLE', role.salary 'SALARY' 
+        FROM employee 
+        LEFT JOIN role ON employee.role_id = role.id 
+        LEFT JOIN department on role.department_id = department.id;`,
+        function (err, res) {
+            if (err) throw err;
+            "\m"
+            console.table(res);
+            "\n";
+            start();
+        })
 }
 
 function empDept() {
@@ -84,6 +93,43 @@ function empRole() {
         start();
     })
 }
+
+function viewDept() {
+    connection.query("SELECT * FROM department",
+        function (err, res) {
+            if (err) throw err;
+
+            inquirer.prompt([
+                {
+                    type: "list",
+                    message: "Which department would you like to view?",
+                    name: "dept",
+                    choices: res.map(res => res.id + " " + res.name)
+                }
+            ]).then(answer => {
+                let deptName = answer.dept.split(" ")[1];
+
+                let query = connection.query(
+                    `SELECT employee.first_name AS 'First Name', employee.last_name AS 'Last Name', role.title AS 'Title', department.name AS 'Department' 
+                    FROM employee 
+                    LEFT JOIN role ON employee.role_id = role.id
+                    LEFT JOIN department ON role.department_id = department.id
+                    WHERE department.name = ?`,
+                    [deptName],
+                    (err, res) => {
+                        if (err) throw err;
+                        console.table(res);
+
+                    })
+            })
+        })
+}
+
+// `SELECT employee.first_name AS 'First Name', employee.last_name AS 'Last Name', role.title AS 'Title', department.name AS 'Department' 
+// FROM employee 
+// LEFT JOIN role ON employee.role_id = role.id
+// LEFT JOIN department ON role.department_id = department.id
+// WHERE department.name = ?`
 
 function empAdd() {
     inquirer.prompt([
@@ -243,11 +289,5 @@ function empUpRole() {
             });
         });
     });
-
-    // const updateID = {}
-    // updateID.id = parseInt(answer.whichemp.split(" ")[0]);
-    // connection.query("UPDATE employee SET role_id = ? WHERE id = ?", [updateID.role_id, updateID.id], (err, res) => {
-
-
 
 }

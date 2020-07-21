@@ -1,7 +1,7 @@
 const mysql = require("mysql");
 const inquirer = require("inquirer");
-const connection = require("connection");
-const dbfunctions = require("DBfunctions");
+const connection = require("./connection");
+const dbfunctions = require("./index");
 
 start();
 
