@@ -15,13 +15,11 @@ function start() {
             "View all employees.",
             "View all departments.",
             "View all roles.",
-            "View all employess by manager.",
             "Add employee.",
             "Add a new role.",
             "Add a new department.",
             "Remove employee.",
             "Update employee role.",
-            "Update employee manager.",
             "Exit"
         ]
     }).then(answer => {
@@ -34,9 +32,6 @@ function start() {
                 break;
             case "View all roles.":
                 empRole();
-                break;
-            case "View all employess by manager.":
-                empMan();
                 break;
             case "Add employee.":
                 empAdd();
@@ -52,9 +47,6 @@ function start() {
                 break;
             case "Update employee role.":
                 empUpRole();
-                break;
-            case "Update employee manager.":
-                empUpMan();
                 break;
             default:
                 console.log("Thank you, have a great day!");
@@ -154,7 +146,7 @@ function addRole() {
                 if (err) throw err;
 
                 "\n"
-                console.log("The role" + answer.title + "has been added!")
+                console.log("The role " + answer.title + " has been added!")
                 "\n"
             }
         );
@@ -179,7 +171,7 @@ function addDept() {
                 if (err) throw err;
 
                 "\n"
-                console.log("The department" + answer.name + "has been added!")
+                console.log("The department " + answer.name + " has been added!")
                 "\n"
             }
         );
@@ -216,92 +208,46 @@ function empDel() {
 }
 
 function empUpRole() {
-    connection.query("SELECT employee.id, employee.first_name, employee.last_name, role.title FROM employee JOIN role ON employee.role_id = role.id", (err, res) => {
+    let query = connection.query("SELECT * FROM employee", (err, res) => {
         if (err) throw err;
-        console.log(res);
-        // SELECT employee.id, employee.first_name, employee.last_name, role.title FROM employee JOIN role ON employee.role_id = role.id;
         inquirer.prompt([
             {
                 type: "list",
                 message: "Which employee's role would you like to update?",
                 name: "whichemp",
                 choices: res.map(res => res.id + " " + res.first_name + " " + res.last_name)
+            }
+        ]).then(employee => {
+            let empId = employee.whichemp.split(' ')[0];
 
-                // function() {
-                //     let emps = [];
-                //     for (let i = 0; i < res.length; i++) {
-                //         emps.push(res[i].id + " " + res[i].first_name + " " + res[i].last_name);
-                //     }
-                //     return emps;
-                // }
-            },
-            {
-                type: "list",
-                message: "What is the employee's new role?",
-                name: "newrole",
-                choices: res.map(res => res.title)
-                    // [
-                    //     "Senior Engineer",
-                    //     "Associate Engineer",
-                    //     "Sales Manager",
-                    //     "Sales Associate",
-                    //     "Account Manager",
-                    //     "Account Representative",
-                    //     "Lead Counsel",
-                    //     "General Counsel",
-                    //     "Controller",
-                    //     "Accountant"
-                    // ]
-            }
-        ]).then(answer => {
-            const updateID = {}
-            updateID.id = parseInt(answer.whichemp.split(" ")[0]);
-            switch (answer.newrole) {
-                case "Senior Engineer":
-                    updateID.role_id = 1;
-                    break;
-                case "Associate Engineer":
-                    updateID.role_id = 2;
-                    break;
-                case "Sales Manager":
-                    updateID.role_id = 3;
-                    break;
-                case "Sales Associate":
-                    updateID.role_id = 4;
-                    break;
-                case "Account Manager":
-                    updateID.role_id = 5;
-                    break;
-                case "Account Representative":
-                    updateID.role_id = 6;
-                    break;
-                case "Lead Counsel":
-                    updateID.role_id = 7;
-                    break;
-                case "General counsel":
-                    updateID.role_id = 8;
-                    break;
-                case "Controller":
-                    updateID.role_id = 9;
-                    break;
-                case "Accountant":
-                    updateID.role_id = 10;
-                    break;
-                default:
-                    console.log("Please select an option fron the list")
-            }
-            connection.query("UPDATE employee SET role_id = ? WHERE id = ?", [updateID.role_id, updateID.id], (err, res) => {
+            let query = connection.query("SELECT * FROM role", (err, res) => {
                 if (err) throw err;
-            })
-            "\n"
-            start();
-            "\n"
+                inquirer.prompt([
+                    {
+                        type: "list",
+                        message: "What is the employee's new role?",
+                        name: "newrole",
+                        choices: res.map(res => res.id + " " + res.title)
+                    }
+                ]).then(newrole => {
+                    let roleId = newrole.newrole.split(' ')[0];
+
+                    let query = connection.query("UPDATE employee SET role_id = ? WHERE id = ?",
+                        [roleId, empId],
+                        (err, res) => {
+                            if (err) throw err;
+                        }
+                    );
+                    start();
+                });
+            });
         });
     });
 
-};
+    // const updateID = {}
+    // updateID.id = parseInt(answer.whichemp.split(" ")[0]);
+    // connection.query("UPDATE employee SET role_id = ? WHERE id = ?", [updateID.role_id, updateID.id], (err, res) => {
 
 
-function empUpMan() {
 
 }
