@@ -318,7 +318,6 @@ function deptDel() {
     })
 }
 
-
 function empUpRole() {
     let query = connection.query("SELECT * FROM employee", (err, res) => {
         if (err) throw err;
